@@ -1,0 +1,139 @@
+import random
+import sys, pygame
+import pygame.math as math
+
+pygame.init()
+
+size = width, height = 1024, 800
+black = 0, 0, 0
+grey = 200, 200, 200
+green = 180, 250, 180
+screen = pygame.display.set_mode(size)
+blobs = []
+foods = []
+
+
+class Blob:
+    def __init__(self, position, size):
+        self.life = random.randint(5000, 10000)
+        self.position = pygame.Vector2(position)
+        # self.position = position
+        self.size = size
+        self.direction = pygame.Vector2(random.randint(-10, 10), random.randint(-10, 10))
+        self.speed = random.uniform(0.05, 0.15)
+        self.agility = random.randint(5, 15)
+
+        self.direction = self.direction.normalize()
+        print(self.direction * 5)
+        # self.direction = random.randint(0,10) - 5, random.randint(0,10) - 5
+
+    def draw(self):
+        pygame.draw.circle(screen, (black), self.position, self.size, 0)
+        pygame.draw.line(screen, black, self.position, (self.size * 2 * self.direction) + self.position)
+
+    def look_for_food(self):
+        pass
+
+    def move(self):
+        if self.position.x + self.direction.x < 20:
+            self.direction = self.direction.rotate(self.agility)
+        if self.position.x + self.direction.x > width - 20:
+            self.direction = self.direction.rotate(self.agility)
+        if self.position.y < 20:
+            self.direction = self.direction.rotate(self.agility)
+        if self.position.y > height - 20:
+            self.direction = self.direction.rotate(self.agility)
+        self.position = self.position + self.direction * self.speed
+
+    def age(self):
+        self.life -= 1
+
+
+class Food:
+    def __init__(self) -> None:
+        self.position = pygame.Vector2(random.randint(0, width), random.randint(0, height))
+        self.size = 3
+        self.eaten = 0  # true / false
+
+    def draw(self):
+        pygame.draw.circle(screen, (green), self.position, self.size, 0)
+
+    def check_eaten(self):
+        for blob in blobs:
+            distance = math.Vector2.distance_to(self.position, blob.position)
+            if distance < 10:
+                self.eaten = 1
+                blob.life += 1000  # Live longer!
+
+
+def generate_Blobs(number):
+    generated = 0
+    while generated < number:
+        pos = [random.randint(10, 1000), random.randint(10, 780)]
+        size = random.randint(3, 10)
+        blobs.append(Blob(pos, size))
+        generated += 1
+    return
+
+
+def generate_Food(number):
+    generated = 0
+    while generated < number:
+        foods.append(Food())
+        generated += 1
+    return
+
+
+def remove_dead_blobs():
+    blobs_to_kill = []
+    for i in range(len(blobs)):
+        if blobs[i].life <= 0:
+            blobs_to_kill.append(i)
+            print("one mor blob is dead...")
+    for dead in blobs_to_kill:
+        blobs.pop(dead)
+
+
+def remove_eaten_food():
+    foods_to_remove = []
+    for i in range(len(foods)):
+        if foods[i].eaten == 1:
+            foods_to_remove.append(i)
+            print("A food has been eaten!")
+    for eaten in foods_to_remove:
+        foods.pop(eaten)
+
+
+generate_Food(100)
+generate_Blobs(10)
+
+while True:
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT: sys.exit()
+    screen.fill(grey)
+
+    for blob in blobs:
+        blob.look_for_food()
+        blob.move()
+        blob.draw()
+        blob.age()
+
+    for food in foods:
+        food.draw()
+        food.check_eaten()
+    remove_dead_blobs()
+    remove_eaten_food()
+
+    pygame.display.flip()
+    pygame.display.update()
+
+# Ideas
+# Create attribute 'Sex', female 0, male 1
+# Different sex blobs can spend energy (age) to breed, spawning a new blob with features average of parents
+# ^Introduce attribute 'Friendly' which draws blobs towards blobs of other sex
+# Same sex blobs can spend energy (age) to fight, which has a random outcome based on their energy, winner steals all energy!
+# ^Introduce attribute 'Aggressive' which draws blobs towards blobs of same sex
+# ^Introduce attribute 'Hungry' which draws blobs towards food.
+# Make aging based on energy used: speed, agility and size affect age of blobs
+# Make larger blobs have a larger "foodprint" so they can reach food further away.
